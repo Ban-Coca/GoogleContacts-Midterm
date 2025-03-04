@@ -12,6 +12,7 @@ import com.google.api.services.people.v1.PeopleService;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,9 @@ public class GoogleContactsService {
                             person.getEmailAddresses().get(0).getValue() : "No Email";
                     String phone = (person.getPhoneNumbers() != null && !person.getPhoneNumbers().isEmpty()) ?
                             person.getPhoneNumbers().get(0).getValue() : "No Phone";
-                    return Map.<String, Object>of("name", name, "email", email, "phone", phone);
+                    String resourceName = (person.getResourceName() != null && !person.getResourceName().isEmpty()) ?
+                            person.getResourceName() : "No Resource Name";
+                    return Map.<String, Object>of("name", name, "email", email, "phone", phone, "resourceName", resourceName);
                 }).collect(Collectors.toList());
         ObjectMapper mapper = new ObjectMapper();
         return mapper.writeValueAsString(contacts);
@@ -93,7 +96,9 @@ public class GoogleContactsService {
     // UPDATE CONTACTS
     public Person updateContact(Credential accessToken, String resourceName, String name, String email, String phone) throws GeneralSecurityException, IOException {
         PeopleService peopleService = getPeopleService(accessToken);
-        Person updateContact = new Person();
+        Person existingContact = peopleService.people().get(resourceName).setPersonFields("names,emailAddresses,phoneNumbers,metadata").execute();
+        String etag = existingContact.getEtag();
+        Person updateContact = new Person().setEtag(etag);
         String firstName = name;
         String lastName = "";
         if (name.contains(" ")) {
@@ -101,22 +106,28 @@ public class GoogleContactsService {
             firstName = names[0];
             lastName = names[1];
         }
-
+        List<String> updateFields = new ArrayList<>();
         Name contactName = new Name()
                 .setGivenName(firstName)
                 .setFamilyName(lastName);
-        updateContact.setNames(Collections.singletonList(contactName));
+        if(!firstName.isEmpty() || !lastName.isEmpty() ) {
+            updateContact.setNames(Collections.singletonList(new Name().setGivenName(firstName).setFamilyName(lastName)));
+            updateFields.add("names");
+        }
 
         if (phone != null && !phone.isEmpty()) {
-            PhoneNumber phoneNumber = new PhoneNumber()
-                    .setValue(phone);
-            updateContact.setPhoneNumbers(Collections.singletonList(phoneNumber));
+            updateContact.setPhoneNumbers(Collections.singletonList(new PhoneNumber().setValue(phone)));
+            updateFields.add("phoneNumbers");
         }
         if (email != null && !email.isEmpty()) {
-            EmailAddress emailAddress = new EmailAddress().setValue(email);
-            updateContact.setEmailAddresses(Collections.singletonList(emailAddress));
+            updateContact.setEmailAddresses(Collections.singletonList(new EmailAddress().setValue(email)));
+            updateFields.add("emailAddresses");
         }
-        return peopleService.people().updateContact(resourceName, updateContact).execute();
+        String updateMask = String.join(",", updateFields);
+        if(updateMask.isEmpty()){
+            throw new IllegalArgumentException("Update mask is empty");
+        }
+        return peopleService.people().updateContact(resourceName, updateContact).setUpdatePersonFields(updateMask).execute();
     }
 
 }
