@@ -42,14 +42,23 @@ public class GoogleContactsService {
                 .execute();
         List<Map<String, Object>> contacts = response.getConnections().stream()
                 .map(person -> {
-                    String name = (person.getNames() != null && !person.getNames().isEmpty()) ?
-                            person.getNames().get(0).getDisplayName() : "No Name";
-                    String email = (person.getEmailAddresses() != null && !person.getEmailAddresses().isEmpty()) ?
-                            person.getEmailAddresses().get(0).getValue() : "No Email";
-                    String phone = (person.getPhoneNumbers() != null && !person.getPhoneNumbers().isEmpty()) ?
-                            person.getPhoneNumbers().get(0).getValue() : "No Phone";
+                        String name = (person.getNames() != null && !person.getNames().isEmpty()) ?
+                                person.getNames().get(0).getDisplayName() : "No Name";
+
+                    List<String> email = (person.getEmailAddresses() != null && !person.getEmailAddresses().isEmpty()) ?
+                            person.getEmailAddresses().stream()
+                                    .map(EmailAddress::getValue)
+                                    .collect(Collectors.toList()) // Keep as List<String>
+                            : List.of();
+
+                    List<String> phone = (person.getPhoneNumbers() != null && !person.getPhoneNumbers().isEmpty()) ?
+                            person.getPhoneNumbers().stream()
+                                    .map(PhoneNumber::getValue)
+                                    .collect(Collectors.toList()) // Keep as List<String>
+                            : List.of();
+
                     String resourceName = (person.getResourceName() != null && !person.getResourceName().isEmpty()) ?
-                            person.getResourceName() : "No Resource Name";
+                                person.getResourceName() : "No Resource Name";
                     return Map.<String, Object>of("name", name, "email", email, "phone", phone, "resourceName", resourceName);
                 }).collect(Collectors.toList());
         ObjectMapper mapper = new ObjectMapper();

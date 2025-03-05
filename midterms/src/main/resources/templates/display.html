@@ -132,8 +132,17 @@
             </div>
             <div th:each="contact : ${contacts}" class="table-row">
                 <div class="divCell" ><p th:text="${contact['name']}"></p></div>
-                <div class="divCell" ><p th:text="${contact['email']}"></p></div>
-                <div class="divCell" ><p th:text="${contact['phone']}"></p></div>
+                <div class="divCell">
+                    <ul>
+                        <li th:each="email : ${contact['email']}" th:text="${email}"></li>
+                    </ul>
+                </div>
+                <div class="divCell">
+                    <ul>
+                        <li th:each="phone : ${contact['phone']}" th:text="${phone}"></li>
+                    </ul>
+                </div>
+
                 <div class="divCell actions">
                     <button class="actionBtn" th:attr="onclick=|updateModal('${contact['resourceName']}', '${contact['name']}', '${contact['email']}', '${contact['phone']}')|"><img src="/images/edit-user-7-svgrepo-com.svg">Update</button>
                     <form th:action="@{/delete-contact}" method="post">
@@ -162,7 +171,7 @@
                 </div>
                 <div class="form-group">
                     <label for="addPhone">Phone Number:</label>
-                    <input type="text" id="addPhone" name="phone" required>
+                    <input type="text" id="addPhone" name="phone" required maxlength="11">
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="addSubmit">Add Contact</button>
@@ -190,7 +199,7 @@
                 </div>
                 <div class="form-group">
                     <label for="updatePhone">Phone Number:</label>
-                    <input type="text" id="updatePhone" name="phone" required>
+                    <input type="text" id="updatePhone" name="phone" maxlength="11" required>
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="addSubmit">Update Contact</button>
